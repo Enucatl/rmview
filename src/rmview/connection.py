@@ -63,8 +63,21 @@ class rMConnect(QRunnable):
   _exception = None
   _known_hosts = None
 
-  def __init__(self, address='10.11.99.1', username='root', password=None, key=None, timeout=3,
-               onConnect=None, onError=None, host_key_policy=None, known_hosts=None, auth_method=None, **kwargs):
+  def __init__(
+    self,
+    address='10.11.99.1',
+    username='root',
+    password=None,
+    key=None,
+    timeout=3,
+    onConnect=None,
+    onError=None,
+    host_key_policy=None,
+    known_hosts=None,
+    auth_method=None,
+    key_type="RSAKey",
+    **kwargs
+  ):
     super(rMConnect, self).__init__()
 
     self.address = address
@@ -74,21 +87,22 @@ class rMConnect(QRunnable):
     self.auth_method = auth_method
     self.host_key_policy = host_key_policy
     self._known_hosts = known_hosts
+    self.key_type = key_type
 
     if key is not None:
       key = os.path.expanduser(key)
-
+      paramiko_key_type = getattr(paramiko, key_type)
       if password:
         # password protected key file, password provided in the config
-        self.pkey = paramiko.RSAKey.from_private_key_file(key, password=password)
+        self.pkey = paramiko_key_type.from_private_key_file(key, password=password)
       else:
         try:
-          self.pkey = paramiko.RSAKey.from_private_key_file(key)
+          self.pkey = paramiko_key_type.from_private_key_file(key)
         except paramiko.ssh_exception.PasswordRequiredException:
           passphrase, ok = QInputDialog.getText(None, "Configuration","SSH key passphrase:",
                                                 QLineEdit.Password)
           if ok:
-            self.pkey = paramiko.RSAKey.from_private_key_file(key, password=passphrase)
+            self.pkey = paramiko_key_type.from_private_key_file(key, password=passphrase)
           else:
             raise Exception("A passphrase for SSH key is required")
     else:
